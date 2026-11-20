@@ -31,6 +31,20 @@ npm run compile        # 类型检查
 - **Chrome / Edge**：打开 `chrome://extensions` → 开启「开发者模式」→「加载已解压的扩展程序」→ 选择 `.output/chrome-mv3`
 - **Firefox**：打开 `about:debugging#/runtime/this-firefox` →「临时载入附加组件」→ 选择 `.output/firefox-mv3/manifest.json`（重启浏览器后失效，需重新载入）
 
+> Chrome 137 起，正式版已忽略 `--load-extension` 命令行加载（加 `--disable-features=DisableLoadExtensionCommandLineSwitch` 也无效）。命令行 / 自动化场景请改用 Chrome for Testing 的二进制；只做日常调试的话，上面的手动「加载已解压」不受影响。
+
+## 运行时验证
+
+2026-11 在 Chrome for Testing 158 与 Firefox 145 上做过一轮真实浏览器冒烟，结论：
+
+- 拾取：`html` 光标为 `crosshair`、`body` 为 `user-select: none`，点击被拦截、页面不跳转、不触发按钮默认行为
+- 高亮：悬停出现描边框与「标签 + 尺寸」角标；多选时带序号的虚线框与实线框并存
+- 面板：挂在 closed shadow root 内，页面字体（Georgia）未渗透进面板，面板样式也未污染页面
+- 复制：`精简片段` 只输出与同位置默认元素不同的属性（实测一个 `<p>` 只剩 `height / margin-top / transform-origin` 三条），`全部样式` 输出完整声明，系统剪贴板读回内容一致
+- 保存：经后台写入扩展 origin 的 IndexedDB，`工作台` 页签能看到快照条目
+- `Esc` 退出拾取，高亮与描边清除、光标恢复
+- Firefox：`web-ext` 临时安装成功（id `css-snap@local`），未在 Firefox 内做交互验证
+
 ## 使用
 
 1. 点击工具栏上的 CSS Snap 图标，进入拾取模式（光标变为十字）
