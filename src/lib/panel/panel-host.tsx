@@ -2,10 +2,13 @@ import { createRoot, type Root } from 'react-dom/client';
 import panelCss from './panel.css?inline';
 import { Panel } from './Panel';
 import { activeEntry, type PanelData, type PanelRect } from './types';
+import type { Snapshot } from '@/lib/store/types';
 
 export interface PanelHostHandlers {
   onSelectEntry: (index: number) => void;
   onSave: () => Promise<boolean>;
+  onLoadSnapshots: () => Promise<Snapshot[]>;
+  onDeleteSnapshot: (id: string) => Promise<boolean>;
 }
 
 /**
@@ -82,6 +85,8 @@ export class PanelHost {
         onClose={() => this.close()}
         onSelectEntry={this.handlers.onSelectEntry}
         onSave={this.handlers.onSave}
+        onLoadSnapshots={this.handlers.onLoadSnapshots}
+        onDeleteSnapshot={this.handlers.onDeleteSnapshot}
       />,
     );
   };

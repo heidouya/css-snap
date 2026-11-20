@@ -6,8 +6,18 @@ import { collectStyles } from '@/lib/styles/collect';
 import { collectMinimalStyles } from '@/lib/styles/minimal';
 import { describeElement } from '@/lib/element-info';
 import { buildSelector } from '@/lib/element-selector';
-import { TOGGLE_PICKER, SAVE_SNAPSHOT, type ContentMessage, type SaveResult } from '@/lib/messages';
+import {
+  TOGGLE_PICKER,
+  SAVE_SNAPSHOT,
+  LIST_SNAPSHOTS,
+  DELETE_SNAPSHOT,
+  type ContentMessage,
+  type SaveResult,
+  type ListResult,
+  type DeleteResult,
+} from '@/lib/messages';
 import { buildSnapshot } from '@/lib/store/build';
+import type { Snapshot } from '@/lib/store/types';
 import type { SelectionEntry } from '@/lib/panel/types';
 
 export default defineContentScript({
@@ -40,6 +50,26 @@ export default defineContentScript({
             type: SAVE_SNAPSHOT,
             snapshot: buildSnapshot(entries),
           })) as SaveResult | undefined;
+          return Boolean(result?.ok);
+        } catch {
+          return false;
+        }
+      },
+      onLoadSnapshots: async (): Promise<Snapshot[]> => {
+        try {
+          const result = (await browser.runtime.sendMessage({ type: LIST_SNAPSHOTS })) as
+            | ListResult
+            | undefined;
+          return result?.ok ? result.snapshots : [];
+        } catch {
+          return [];
+        }
+      },
+      onDeleteSnapshot: async (id: string) => {
+        try {
+          const result = (await browser.runtime.sendMessage({ type: DELETE_SNAPSHOT, id })) as
+            | DeleteResult
+            | undefined;
           return Boolean(result?.ok);
         } catch {
           return false;

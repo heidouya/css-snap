@@ -2,13 +2,15 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { StyleItem } from '@/lib/styles/collect';
 import { groupsToDeclarations, groupsToRule } from '@/lib/styles/serialize';
 import { copyText } from '@/lib/clipboard';
+import type { Snapshot } from '@/lib/store/types';
+import { Workspace } from './Workspace';
 import type { PanelData, PanelRect, SelectionEntry } from './types';
 
 const PANEL_GAP = 12;
 const VIEWPORT_MARGIN = 12;
 const DEFAULT_WIDTH = 320;
 
-type Tab = 'all' | 'minimal';
+type Tab = 'all' | 'minimal' | 'workspace';
 type CopyState = 'idle' | 'ok' | 'fail';
 
 interface PanelProps {
@@ -17,9 +19,19 @@ interface PanelProps {
   onClose: () => void;
   onSelectEntry: (index: number) => void;
   onSave: () => Promise<boolean>;
+  onLoadSnapshots: () => Promise<Snapshot[]>;
+  onDeleteSnapshot: (id: string) => Promise<boolean>;
 }
 
-export function Panel({ data, rect, onClose, onSelectEntry, onSave }: PanelProps) {
+export function Panel({
+  data,
+  rect,
+  onClose,
+  onSelectEntry,
+  onSave,
+  onLoadSnapshots,
+  onDeleteSnapshot,
+}: PanelProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: DEFAULT_WIDTH, height: 0 });
   const [tab, setTab] = useState<Tab>('all');
@@ -162,22 +174,38 @@ export function Panel({ data, rect, onClose, onSelectEntry, onSave }: PanelProps
         </button>
         <button
           type="button"
-          className={copyState === 'ok' ? 'css-snap-panel__copy is-done' : 'css-snap-panel__copy'}
-          onClick={handleCopy}
+          className={tab === 'workspace' ? 'css-snap-panel__tab is-active' : 'css-snap-panel__tab'}
+          onClick={() => setTab('workspace')}
         >
-          {copyLabel}
+          工作台
         </button>
-        <button
-          type="button"
-          className={saveState === 'ok' ? 'css-snap-panel__save is-done' : 'css-snap-panel__save'}
-          onClick={handleSave}
-          title="把当前选中集存到本地工作台"
-        >
-          {saveState === 'ok' ? '已保存' : saveState === 'fail' ? '保存失败' : '保存'}
-        </button>
+
+        {tab !== 'workspace' && (
+          <>
+            <button
+              type="button"
+              className={copyState === 'ok' ? 'css-snap-panel__copy is-done' : 'css-snap-panel__copy'}
+              onClick={handleCopy}
+            >
+              {copyLabel}
+            </button>
+            <button
+              type="button"
+              className={saveState === 'ok' ? 'css-snap-panel__save is-done' : 'css-snap-panel__save'}
+              onClick={handleSave}
+              title="把当前选中集存到本地工作台"
+            >
+              {saveState === 'ok' ? '已保存' : saveState === 'fail' ? '保存失败' : '保存'}
+            </button>
+          </>
+        )}
       </div>
 
-      {tab === 'all' ? (
+      {tab === 'workspace' ? (
+        <div className="css-snap-panel__body">
+          <Workspace load={onLoadSnapshots} remove={onDeleteSnapshot} />
+        </div>
+      ) : tab === 'all' ? (
         <>
           <div className="css-snap-panel__toolbar">
             <label className="css-snap-panel__switch">
