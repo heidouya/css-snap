@@ -1,7 +1,7 @@
 import { createRoot, type Root } from 'react-dom/client';
 import panelCss from './panel.css?inline';
 import { Panel } from './Panel';
-import type { PanelData, PanelRect } from './types';
+import { activeEntry, type PanelData, type PanelRect } from './types';
 
 /**
  * 面板宿主：负责创建 shadow root、挂载 React，并在页面滚动时重新定位。
@@ -13,6 +13,8 @@ export class PanelHost {
   private data: PanelData | null = null;
   private frame = 0;
   private listening = false;
+
+  constructor(private readonly onSelectEntry: (index: number) => void) {}
 
   get isOpen(): boolean {
     return this.data !== null;
@@ -62,12 +64,20 @@ export class PanelHost {
     const data = this.data;
     if (!data || !this.root) return;
 
-    if (!data.element.isConnected) {
+    const entry = activeEntry(data);
+    if (!entry || !entry.element.isConnected) {
       this.close();
       return;
     }
 
-    this.root.render(<Panel data={data} rect={toRect(data.element)} onClose={() => this.close()} />);
+    this.root.render(
+      <Panel
+        data={data}
+        rect={toRect(entry.element)}
+        onClose={() => this.close()}
+        onSelectEntry={this.onSelectEntry}
+      />,
+    );
   };
 
   private schedule = (): void => {

@@ -11,11 +11,11 @@ const Z_INDEX = '2147483647';
 export class HighlightOverlay {
   private node: HTMLDivElement | null = null;
   private label: HTMLSpanElement | null = null;
-  private target: HTMLElement | null = null;
+  private target: Element | null = null;
   private frame = 0;
   private listening = false;
 
-  show(target: HTMLElement): void {
+  show(target: Element): void {
     if (target === this.target) return;
     this.target = target;
     const node = this.ensureNode();

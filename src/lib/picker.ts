@@ -1,18 +1,16 @@
-/**
- * 元素拾取器
- *
- * 采用 capture 阶段监听 pointermove 的方式获取真实元素，不使用全屏遮挡层 +
- * elementFromPoint，避免每帧改写 pointer-events 带来的副作用。
- */
-
 const OWN_UI_ATTR = 'data-css-snap-ui';
 const CURSOR_STYLE_ID = 'css-snap-cursor-style';
+
+export interface PickOptions {
+  /** 是否按住 Shift 追加选择 */
+  additive: boolean;
+}
 
 export interface PickerHandlers {
   /** 悬停目标变化（含 null） */
   onHover: (element: HTMLElement | null) => void;
   /** 用户点选了一个元素 */
-  onPick: (element: HTMLElement) => void;
+  onPick: (element: HTMLElement, options: PickOptions) => void;
   /** 拾取模式开启 / 关闭 */
   onActiveChange: (active: boolean) => void;
 }
@@ -91,7 +89,10 @@ export class Picker {
   }
 
   private handlePointerMove = (event: PointerEvent): void => {
-    this.setHovered(this.resolve(event));
+    const element = this.resolve(event);
+    // 移到面板等自身 UI 上时保持当前目标，避免高亮闪烁
+    if (!element) return;
+    this.setHovered(element);
   };
 
   /** Alt + 滚轮 在祖先链上移动一层，向下为子元素、向上为父元素 */
@@ -116,7 +117,7 @@ export class Picker {
     // 吞掉这次点击，避免触发页面跳转与业务逻辑
     event.preventDefault();
     event.stopImmediatePropagation();
-    this.handlers.onPick(element);
+    this.handlers.onPick(element, { additive: event.shiftKey });
   };
 
   private handleKeyDown = (event: KeyboardEvent): void => {

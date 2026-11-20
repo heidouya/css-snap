@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { StyleItem } from '@/lib/styles/collect';
 import { groupsToDeclarations, groupsToRule } from '@/lib/styles/serialize';
 import { copyText } from '@/lib/clipboard';
-import type { PanelData, PanelRect } from './types';
+import type { PanelData, PanelRect, SelectionEntry } from './types';
 
 const PANEL_GAP = 12;
 const VIEWPORT_MARGIN = 12;
@@ -15,9 +15,10 @@ interface PanelProps {
   data: PanelData;
   rect: PanelRect;
   onClose: () => void;
+  onSelectEntry: (index: number) => void;
 }
 
-export function Panel({ data, rect, onClose }: PanelProps) {
+export function Panel({ data, rect, onClose, onSelectEntry }: PanelProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: DEFAULT_WIDTH, height: 0 });
   const [tab, setTab] = useState<Tab>('all');
@@ -25,6 +26,10 @@ export function Panel({ data, rect, onClose }: PanelProps) {
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [copyState, setCopyState] = useState<CopyState>('idle');
   const copyTimer = useRef(0);
+
+  const active = (data.entries[data.activeIndex] ?? data.entries[0]) as SelectionEntry;
+  const isMulti = data.entries.length > 1;
+  const visibleGroups = diffOnly ? active.minimal : active.groups;
 
   useLayoutEffect(() => {
     const node = ref.current;
@@ -41,25 +46,49 @@ export function Panel({ data, rect, onClose }: PanelProps) {
   const position = useMemo(() => placePanel(rect, size), [rect, size]);
 
   const diffCount = useMemo(
-    () => data.minimal.reduce((total, group) => total + group.items.length, 0),
-    [data.minimal],
+    () => data.entries.reduce((total, entry) => total + countItems(entry.minimal), 0),
+    [data.entries],
   );
-  const visibleGroups = diffOnly ? data.minimal : data.groups;
-  const rule = useMemo(() => groupsToRule(data.selector, data.minimal), [data.selector, data.minimal]);
+
+  const ruleText = useMemo(() => {
+    if (isMulti) {
+      return data.entries.map((entry) => groupsToRule(entry.selector, entry.minimal)).join('\n\n');
+    }
+    return groupsToRule(active.selector, active.minimal);
+  }, [data.entries, isMulti, active]);
 
   const toggleGroup = (id: string) => {
     setCollapsed((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
   const handleCopy = async () => {
-    const text = tab === 'minimal' ? rule : groupsToDeclarations(visibleGroups);
+    let text: string;
+    if (tab === 'minimal') {
+      text = ruleText;
+    } else if (isMulti) {
+      text = data.entries
+        .map((entry) => groupsToDeclarations(diffOnly ? entry.minimal : entry.groups))
+        .join('\n\n');
+    } else {
+      text = groupsToDeclarations(visibleGroups);
+    }
+
     const ok = await copyText(text);
     setCopyState(ok ? 'ok' : 'fail');
     window.clearTimeout(copyTimer.current);
     copyTimer.current = window.setTimeout(() => setCopyState('idle'), 1500);
   };
 
-  const copyLabel = copyState === 'ok' ? '已复制' : copyState === 'fail' ? '复制失败' : tab === 'minimal' ? '复制片段' : '复制用到的样式';
+  const copyLabel =
+    copyState === 'ok'
+      ? '已复制'
+      : copyState === 'fail'
+        ? '复制失败'
+        : tab === 'minimal'
+          ? isMulti
+            ? '复制全部片段'
+            : '复制片段'
+          : '复制样式';
 
   return (
     <div
@@ -68,16 +97,37 @@ export function Panel({ data, rect, onClose }: PanelProps) {
       style={{ left: `${position.left}px`, top: `${position.top}px` }}
     >
       <header className="css-snap-panel__header">
-        <span className="css-snap-panel__title" title={data.info.label}>
-          {data.info.label}
+        <span className="css-snap-panel__title" title={active.info.label}>
+          {active.info.label}
         </span>
         <span className="css-snap-panel__size">
-          {data.info.width} × {data.info.height}
+          {active.info.width} × {active.info.height}
         </span>
         <button type="button" className="css-snap-panel__close" aria-label="关闭" onClick={onClose}>
           ×
         </button>
       </header>
+
+      {isMulti && (
+        <div className="css-snap-panel__selection">
+          {data.entries.map((entry, index) => (
+            <button
+              key={entry.index}
+              type="button"
+              className={
+                index === data.activeIndex
+                  ? 'css-snap-panel__selected is-active'
+                  : 'css-snap-panel__selected'
+              }
+              title={entry.selector}
+              onClick={() => onSelectEntry(index)}
+            >
+              <span className="css-snap-panel__selected-num">{entry.index}</span>
+              <span className="css-snap-panel__selected-label">{entry.info.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="css-snap-panel__tabs">
         <button
@@ -157,16 +207,22 @@ export function Panel({ data, rect, onClose }: PanelProps) {
         </>
       ) : (
         <div className="css-snap-panel__body">
-          <pre className="css-snap-panel__code">{rule}</pre>
+          <pre className="css-snap-panel__code">{ruleText}</pre>
           <p className="css-snap-panel__hint">
-            已剔除与同位置默认元素一致的属性，共保留 {diffCount} 条。
+            {isMulti
+              ? `共 ${data.entries.length} 个元素，已剔除与默认样式一致的属性。`
+              : `已剔除与同位置默认元素一致的属性，共保留 ${countItems(active.minimal)} 条。`}
           </p>
         </div>
       )}
 
-      <footer className="css-snap-panel__footer">Esc 退出拾取 · 继续点选可切换元素</footer>
+      <footer className="css-snap-panel__footer">Shift+点击 追加多选 · Esc 退出拾取</footer>
     </div>
   );
+}
+
+function countItems(groups: { items: StyleItem[] }[]): number {
+  return groups.reduce((total, group) => total + group.items.length, 0);
 }
 
 function ValueView({ item }: { item: StyleItem }) {

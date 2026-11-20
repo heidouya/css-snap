@@ -82,6 +82,65 @@
   color: #374151;
 }
 
+/* ---------- 多选列表 ---------- */
+
+.css-snap-panel__selection {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 6px 10px;
+  border-bottom: 1px solid #f0f2f4;
+  background: #ffffff;
+  max-height: 76px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.css-snap-panel__selected {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  padding: 2px 6px 2px 2px;
+  border: 1px solid #e2e6ea;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #374151;
+  font-family: inherit;
+  font-size: 10.5px;
+  cursor: pointer;
+}
+
+.css-snap-panel__selected:hover {
+  border-color: #c6cdd5;
+}
+
+.css-snap-panel__selected.is-active {
+  border-color: #93b4f5;
+  background: #f1f5ff;
+  color: #1d4ed8;
+}
+
+.css-snap-panel__selected-num {
+  flex: none;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 3px;
+  border-radius: 8px;
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 10px;
+  line-height: 15px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.css-snap-panel__selected-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* ---------- Tab 与复制 ---------- */
 
 .css-snap-panel__tabs {
