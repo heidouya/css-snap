@@ -1,5 +1,6 @@
 import { Picker } from '@/lib/picker';
 import { HighlightOverlay } from '@/lib/highlight';
+import { PanelHost } from '@/lib/panel/panel-host';
 import { collectStyles } from '@/lib/styles/collect';
 import { collectMinimalStyles } from '@/lib/styles/minimal';
 import { describeElement } from '@/lib/element-info';
@@ -10,6 +11,7 @@ export default defineContentScript({
   runAt: 'document_idle',
   main(ctx) {
     const highlight = new HighlightOverlay();
+    const panel = new PanelHost();
 
     const picker = new Picker({
       onHover: (element) => {
@@ -17,10 +19,13 @@ export default defineContentScript({
         else highlight.hide();
       },
       onPick: (element) => {
-        const info = describeElement(element);
-        const groups = collectStyles(element);
-        const minimal = collectMinimalStyles(element);
-        console.log('[css-snap] picked', info, groups, minimal);
+        highlight.show(element);
+        panel.open({
+          info: describeElement(element),
+          groups: collectStyles(element),
+          minimal: collectMinimalStyles(element),
+          element,
+        });
       },
       onActiveChange: (active) => {
         if (!active) highlight.hide();
@@ -35,6 +40,7 @@ export default defineContentScript({
 
     ctx.onInvalidated(() => {
       picker.stop();
+      panel.close();
       highlight.destroy();
     });
   },
