@@ -15,6 +15,8 @@ export interface PanelData {
   info: ElementInfo;
   groups: StyleGroupResult[];
   minimal: StyleGroupResult[];
+  /** 复制精简片段时用的选择器 */
+  selector: string;
   /** 被选中的元素，面板据此跟随滚动重新定位 */
   element: Element;
 }

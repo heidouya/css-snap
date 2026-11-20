@@ -4,6 +4,7 @@ import { PanelHost } from '@/lib/panel/panel-host';
 import { collectStyles } from '@/lib/styles/collect';
 import { collectMinimalStyles } from '@/lib/styles/minimal';
 import { describeElement } from '@/lib/element-info';
+import { buildSelector } from '@/lib/element-selector';
 import { TOGGLE_PICKER, type ContentMessage } from '@/lib/messages';
 
 export default defineContentScript({
@@ -24,6 +25,7 @@ export default defineContentScript({
           info: describeElement(element),
           groups: collectStyles(element),
           minimal: collectMinimalStyles(element),
+          selector: buildSelector(element),
           element,
         });
       },
