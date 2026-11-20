@@ -1,6 +1,7 @@
 import { Picker } from '@/lib/picker';
 import { HighlightOverlay } from '@/lib/highlight';
 import { collectStyles } from '@/lib/styles/collect';
+import { collectMinimalStyles } from '@/lib/styles/minimal';
 import { describeElement } from '@/lib/element-info';
 import { TOGGLE_PICKER, type ContentMessage } from '@/lib/messages';
 
@@ -18,7 +19,8 @@ export default defineContentScript({
       onPick: (element) => {
         const info = describeElement(element);
         const groups = collectStyles(element);
-        console.log('[css-snap] picked', info, groups);
+        const minimal = collectMinimalStyles(element);
+        console.log('[css-snap] picked', info, groups, minimal);
       },
       onActiveChange: (active) => {
         if (!active) highlight.hide();
