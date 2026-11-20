@@ -8,6 +8,8 @@ export default defineConfig({
     name: 'CSS Snap',
     description: '点选网页元素，查看并复制 CSS 样式',
     permissions: ['storage', 'clipboardWrite'],
+    // 无默认弹窗，点击工具栏图标即开始拾取
+    action: {},
     ...(browser === 'firefox'
       ? {
           browser_specific_settings: {
