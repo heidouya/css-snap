@@ -8,6 +8,7 @@
   position: fixed;
   box-sizing: border-box;
   width: 320px;
+  max-width: calc(100vw - 24px);
   max-height: min(70vh, 560px);
   display: flex;
   flex-direction: column;
@@ -158,6 +159,7 @@
 .css-snap-panel__tabs {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 4px;
   padding: 6px 10px 6px 8px;
   border-bottom: 1px solid #f0f2f4;
