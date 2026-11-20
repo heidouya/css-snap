@@ -20,6 +20,9 @@ export interface PickerHandlers {
 export class Picker {
   private active = false;
   private hovered: HTMLElement | null = null;
+  /** 当前悬停元素到根节点的祖先链，用于 Alt+滚轮 切换层级 */
+  private chain: HTMLElement[] = [];
+  private chainIndex = 0;
 
   constructor(private readonly handlers: PickerHandlers) {}
 
@@ -37,6 +40,7 @@ export class Picker {
     document.addEventListener('pointermove', this.handlePointerMove, true);
     document.addEventListener('click', this.handleClick, true);
     document.addEventListener('keydown', this.handleKeyDown, true);
+    document.addEventListener('wheel', this.handleWheel, { capture: true, passive: false });
     this.injectCursorStyle();
     this.handlers.onActiveChange(true);
   }
@@ -47,6 +51,7 @@ export class Picker {
     document.removeEventListener('pointermove', this.handlePointerMove, true);
     document.removeEventListener('click', this.handleClick, true);
     document.removeEventListener('keydown', this.handleKeyDown, true);
+    document.removeEventListener('wheel', this.handleWheel, true);
     this.removeCursorStyle();
     this.setHovered(null);
     this.handlers.onActiveChange(false);
@@ -67,14 +72,41 @@ export class Picker {
     return null;
   }
 
-  private setHovered(element: HTMLElement | null): void {
+  private setHovered(element: HTMLElement | null, resetChain = true): void {
+    if (resetChain) this.rebuildChain(element);
     if (element === this.hovered) return;
     this.hovered = element;
     this.handlers.onHover(element);
   }
 
+  private rebuildChain(element: HTMLElement | null): void {
+    const chain: HTMLElement[] = [];
+    let cursor: HTMLElement | null = element;
+    while (cursor) {
+      if (!isOwnUi(cursor)) chain.unshift(cursor);
+      cursor = cursor.parentElement;
+    }
+    this.chain = chain;
+    this.chainIndex = chain.length - 1;
+  }
+
   private handlePointerMove = (event: PointerEvent): void => {
     this.setHovered(this.resolve(event));
+  };
+
+  /** Alt + 滚轮 在祖先链上移动一层，向下为子元素、向上为父元素 */
+  private handleWheel = (event: WheelEvent): void => {
+    if (!this.active || !event.altKey) return;
+    if (ownUiInPath(event)) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    if (!this.chain.length) return;
+    const step = event.deltaY > 0 ? 1 : -1;
+    const next = Math.min(this.chain.length - 1, Math.max(0, this.chainIndex + step));
+    const target = this.chain[next];
+    if (next === this.chainIndex || !target) return;
+    this.chainIndex = next;
+    this.setHovered(target, false);
   };
 
   private handleClick = (event: MouseEvent): void => {
@@ -109,4 +141,8 @@ export class Picker {
 
 function isOwnUi(element: HTMLElement): boolean {
   return element.hasAttribute(OWN_UI_ATTR) || element.closest(`[${OWN_UI_ATTR}]`) !== null;
+}
+
+function ownUiInPath(event: Event): boolean {
+  return event.composedPath().some((node) => node instanceof HTMLElement && isOwnUi(node));
 }
