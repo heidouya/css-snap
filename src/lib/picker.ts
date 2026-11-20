@@ -57,10 +57,12 @@ export class Picker {
     else this.start();
   }
 
-  /** 从事件路径里取出最深层的页面元素，跳过扩展自己的 UI */
+  /** 从事件路径里取出最深层的页面元素，命中扩展自己的 UI 时返回 null */
   private resolve(event: Event): HTMLElement | null {
     for (const node of event.composedPath()) {
-      if (node instanceof HTMLElement && !isOwnUi(node)) return node;
+      if (!(node instanceof HTMLElement)) continue;
+      if (isOwnUi(node)) return null;
+      return node;
     }
     return null;
   }
@@ -77,12 +79,12 @@ export class Picker {
 
   private handleClick = (event: MouseEvent): void => {
     const element = this.resolve(event);
+    // 点在扩展自己的面板上时放行，不做拦截
     if (!element) return;
     // 吞掉这次点击，避免触发页面跳转与业务逻辑
     event.preventDefault();
     event.stopImmediatePropagation();
     this.handlers.onPick(element);
-    this.stop();
   };
 
   private handleKeyDown = (event: KeyboardEvent): void => {
