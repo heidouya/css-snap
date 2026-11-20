@@ -39,6 +39,17 @@
   padding: 9px 10px 9px 12px;
   border-bottom: 1px solid #eceff2;
   background: #fafbfc;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.css-snap-panel.is-dragging .css-snap-panel__header {
+  cursor: grabbing;
+}
+
+.css-snap-panel.is-dragging {
+  user-select: none;
 }
 
 .css-snap-panel__title {
@@ -63,21 +74,22 @@
   font-variant-numeric: tabular-nums;
 }
 
-.css-snap-panel__close {
+.css-snap-panel__icon {
   flex: none;
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   padding: 0;
   border: 0;
   border-radius: 5px;
   background: transparent;
   color: #9aa1a9;
-  font-size: 15px;
+  font-family: inherit;
+  font-size: 13px;
   line-height: 1;
   cursor: pointer;
 }
 
-.css-snap-panel__close:hover {
+.css-snap-panel__icon:hover {
   background: #eceff2;
   color: #374151;
 }
