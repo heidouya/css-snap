@@ -16,16 +16,19 @@ interface PanelProps {
   rect: PanelRect;
   onClose: () => void;
   onSelectEntry: (index: number) => void;
+  onSave: () => Promise<boolean>;
 }
 
-export function Panel({ data, rect, onClose, onSelectEntry }: PanelProps) {
+export function Panel({ data, rect, onClose, onSelectEntry, onSave }: PanelProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: DEFAULT_WIDTH, height: 0 });
   const [tab, setTab] = useState<Tab>('all');
   const [diffOnly, setDiffOnly] = useState(false);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [copyState, setCopyState] = useState<CopyState>('idle');
+  const [saveState, setSaveState] = useState<CopyState>('idle');
   const copyTimer = useRef(0);
+  const saveTimer = useRef(0);
 
   const active = (data.entries[data.activeIndex] ?? data.entries[0]) as SelectionEntry;
   const isMulti = data.entries.length > 1;
@@ -41,7 +44,13 @@ export function Panel({ data, rect, onClose, onSelectEntry }: PanelProps) {
     return () => observer.disconnect();
   }, []);
 
-  useEffect(() => () => window.clearTimeout(copyTimer.current), []);
+  useEffect(
+    () => () => {
+      window.clearTimeout(copyTimer.current);
+      window.clearTimeout(saveTimer.current);
+    },
+    [],
+  );
 
   const position = useMemo(() => placePanel(rect, size), [rect, size]);
 
@@ -77,6 +86,13 @@ export function Panel({ data, rect, onClose, onSelectEntry }: PanelProps) {
     setCopyState(ok ? 'ok' : 'fail');
     window.clearTimeout(copyTimer.current);
     copyTimer.current = window.setTimeout(() => setCopyState('idle'), 1500);
+  };
+
+  const handleSave = async () => {
+    const ok = await onSave();
+    setSaveState(ok ? 'ok' : 'fail');
+    window.clearTimeout(saveTimer.current);
+    saveTimer.current = window.setTimeout(() => setSaveState('idle'), 1600);
   };
 
   const copyLabel =
@@ -150,6 +166,14 @@ export function Panel({ data, rect, onClose, onSelectEntry }: PanelProps) {
           onClick={handleCopy}
         >
           {copyLabel}
+        </button>
+        <button
+          type="button"
+          className={saveState === 'ok' ? 'css-snap-panel__save is-done' : 'css-snap-panel__save'}
+          onClick={handleSave}
+          title="把当前选中集存到本地工作台"
+        >
+          {saveState === 'ok' ? '已保存' : saveState === 'fail' ? '保存失败' : '保存'}
         </button>
       </div>
 

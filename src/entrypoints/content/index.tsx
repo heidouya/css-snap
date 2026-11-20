@@ -6,7 +6,8 @@ import { collectStyles } from '@/lib/styles/collect';
 import { collectMinimalStyles } from '@/lib/styles/minimal';
 import { describeElement } from '@/lib/element-info';
 import { buildSelector } from '@/lib/element-selector';
-import { TOGGLE_PICKER, type ContentMessage } from '@/lib/messages';
+import { TOGGLE_PICKER, SAVE_SNAPSHOT, type ContentMessage, type SaveResult } from '@/lib/messages';
+import { buildSnapshot } from '@/lib/store/build';
 import type { SelectionEntry } from '@/lib/panel/types';
 
 export default defineContentScript({
@@ -23,12 +24,27 @@ export default defineContentScript({
       if (entries.length) panel.open({ entries, activeIndex });
     };
 
-    const panel = new PanelHost((index) => {
-      const entry = entries[index];
-      if (!entry) return;
-      activeIndex = index;
-      highlight.show(entry.element);
-      reopen();
+    const panel = new PanelHost({
+      onSelectEntry: (index) => {
+        const entry = entries[index];
+        if (!entry) return;
+        activeIndex = index;
+        highlight.show(entry.element);
+        reopen();
+      },
+      onSave: async () => {
+        if (!entries.length) return false;
+        try {
+          // 存储必须走后台：内容脚本里的 indexedDB 属于页面 origin
+          const result = (await browser.runtime.sendMessage({
+            type: SAVE_SNAPSHOT,
+            snapshot: buildSnapshot(entries),
+          })) as SaveResult | undefined;
+          return Boolean(result?.ok);
+        } catch {
+          return false;
+        }
+      },
     });
 
     const picker = new Picker({

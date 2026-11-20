@@ -3,6 +3,11 @@ import panelCss from './panel.css?inline';
 import { Panel } from './Panel';
 import { activeEntry, type PanelData, type PanelRect } from './types';
 
+export interface PanelHostHandlers {
+  onSelectEntry: (index: number) => void;
+  onSave: () => Promise<boolean>;
+}
+
 /**
  * 面板宿主：负责创建 shadow root、挂载 React，并在页面滚动时重新定位。
  * 宿主节点带 data-css-snap-ui 标记，拾取器据此放行面板内的点击。
@@ -14,7 +19,7 @@ export class PanelHost {
   private frame = 0;
   private listening = false;
 
-  constructor(private readonly onSelectEntry: (index: number) => void) {}
+  constructor(private readonly handlers: PanelHostHandlers) {}
 
   get isOpen(): boolean {
     return this.data !== null;
@@ -75,7 +80,8 @@ export class PanelHost {
         data={data}
         rect={toRect(entry.element)}
         onClose={() => this.close()}
-        onSelectEntry={this.onSelectEntry}
+        onSelectEntry={this.handlers.onSelectEntry}
+        onSave={this.handlers.onSave}
       />,
     );
   };
